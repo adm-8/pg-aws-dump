@@ -1,9 +1,11 @@
-# ENV_LIST:
 ```
-export AWS_REGION="ru-central1"
-export AWS_ENDPOINT_URL="https://storage.yandexcloud.net/"
-export AWS_ACCESS_KEY_ID="AWS_ACCESS_KEY_ID"
-export AWS_SECRET_ACCESS_KEY="AWS_SECRET_ACCESS_KEY"
-export AWS_TEMP_DIR_PATH="$HOME/temp/aws/data"
-export SLEEP_SECONDS=2
+docker build -t adm8/pg-dump-aws:latest .
+```
+
+```
+docker run -it --rm --env-file .env adm8/pg-dump-aws
+```
+
+```
+docker run -it --rm adm8/pg-dump-aws bash 
 ```

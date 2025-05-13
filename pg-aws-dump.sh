@@ -1,6 +1,8 @@
 #!/bin/bash
 set -o errexit -o pipefail -o nounset
 
+export TZ='Europe/Moscow'
+
 # If debug - print ENV vars
 if [ "$DEBUG_MODE" = "true" ]; then
     env
@@ -107,9 +109,14 @@ EOF
 while true; do
     # Making backup file:
     export CURENT_DT=$(date +"%Y-%m-%d_%H-%M-%S")
+    export CURENT_DATE=$(date +"%Y-%m-%d")
     export BACKUP_FILE_PATH="$AWS_TEMP_DIR_PATH/$CURENT_DT.pg_dump.gz"
 
-    echo "Craeting backup at $CURENT_DT with path $BACKUP_FILE_PATH"
+    export DATE_7_DAYS_AGO=$(date -d "7 days ago" +"%Y-%m-%d")
+    export DATE_8_DAYS_AGO=$(date -d "8 days ago" +"%Y-%m-%d")
+    export DATE_9_DAYS_AGO=$(date -d "9 days ago" +"%Y-%m-%d")
+
+    echo "Creating backup at $CURENT_DATE ($CURENT_DT) with path $BACKUP_FILE_PATH"
     export PGPASSWORD="$POSTGRES_PASSWORD"
 
     pg_dump \
@@ -120,7 +127,20 @@ while true; do
         --format=plain \
         | gzip > $BACKUP_FILE_PATH
 
-    aws s3 cp $BACKUP_FILE_PATH "s3://$AWS_BUCKET_NAME/$CURENT_DT/"
-    sleep "${SLEEP_SECONDS:-3600}"  # Defaults to 3600 second (one hour) if unset
+    echo "Export backup..."
+    aws s3 cp $BACKUP_FILE_PATH "s3://$AWS_BUCKET_NAME/$CURENT_DATE/"
+    echo "Success!"
+
+    echo "Remove local backup: $BACKUP_FILE_PATH"
+    rm $BACKUP_FILE_PATH
+    echo "Success!"
+
+    echo "Remove old backups from S3..."
+    aws s3 rm s3://$AWS_BUCKET_NAME/DATE_7_DAYS_AGO --recursive
+    aws s3 rm s3://$AWS_BUCKET_NAME/DATE_8_DAYS_AGO --recursive
+    aws s3 rm s3://$AWS_BUCKET_NAME/DATE_9_DAYS_AGO --recursive
+
+    echo "Success! Sleeping ${SLEEP_SECONDS:-3600} seconds..."
+    sleep "${SLEEP_SECONDS:-3600}" # Defaults to 3600 second (one hour) if unset
 done
 
